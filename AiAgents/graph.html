@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Three-Layer DOE Cycle</title>
+<style>
+* {margin:0; box-sizing:border-box;}
+body {
+  font-family: 'Segoe UI', 'Inter', sans-serif;
+  display:flex; justify-content:center; align-items:center;
+  min-height:100vh; background: linear-gradient(145deg, #f6f9fc, #eef2f7); padding:20px;
+}
+.card {
+  background: rgba(255,255,255,0.7); backdrop-filter: blur(4px);
+  border-radius: 48px; padding:30px 30px 40px; max-width:1200px; width:fit-content;
+  box-shadow: 0 30px 50px rgba(0,20,40,0.25), 0 10px 20px rgba(0,10,20,0.1), inset 0 2px 4px rgba(255,255,255,0.8);
+}
+h2 {text-align:center; font-weight:500; font-size:2rem; color:#0d2b3e; margin-bottom:8px;}
+.sub {text-align:center; font-size:1.1rem; color:#2c4b63; margin-bottom:20px; border-bottom:1px dashed #a0c1d9; padding-bottom:12px; width:80%; margin:auto;}
+.canvas-wrapper {display:flex; justify-content:center; background: rgba(255,255,255,0.3); border-radius:60px; padding:20px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.7);}
+canvas {border-radius:36px; background:#ffffffd9; box-shadow:0 20px 35px -8px rgba(0,40,70,0.3),0 0 0 1px rgba(210,230,250,0.8);}
+.legend {display:flex; flex-wrap:wrap; justify-content:center; gap:28px; margin-top:30px; padding:15px 20px; background: rgba(255,255,255,0.5); border-radius:60px; backdrop-filter:blur(2px); font-size:0.95rem; color:#1a3a4f;}
+.legend-item {display:flex; align-items:center; gap:10px; padding:5px 15px; background:#ffffffd0; border-radius:40px; box-shadow:0 4px 10px rgba(0,20,40,0.1);}
+.color-dot {width:22px; height:22px; border-radius:22px; background:#4a90e2;}
+.legend-text strong {font-weight:600; color:#0c3348;}
+.legend-text small {font-size:0.8rem; font-weight:400; color:#3f627c;}
+footer {text-align:center; margin-top:22px; font-size:0.9rem; color:#4d6f89;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h2>DOE · Three-Layer AI Cycle</h2>
+  <div class="sub">orchestration → workflows → self‑annealing → layer 1 feedback</div>
+  <div class="canvas-wrapper">
+    <canvas id="cycleCanvas" width="1000" height="700"></canvas>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="color-dot" style="background:#4682B4"></span><div class="legend-text"><strong>Orchestration</strong><small>decisions · reads layer 1</small></div></div>
+    <div class="legend-item"><span class="color-dot" style="background:#3CB371"></span><div class="legend-text"><strong>Workflows</strong><small>processes · tasks</small></div></div>
+    <div class="legend-item"><span class="color-dot" style="background:#FFA07A"></span><div class="legend-text"><strong>Self‑Annealing</strong><small>error handler · talks to layer 1</small></div></div>
+    <div class="legend-item"><span class="color-dot" style="background:#9370DB"></span><div class="legend-text"><strong>Layer 1 (Base)</strong><small>data source · core</small></div></div>
+  </div>
+  <footer>⥁ cyclical flow — arrows show primary cycle + data/error exchange</footer>
+</div>
+
+<script>
+(function(){
+  const canvas = document.getElementById('cycleCanvas');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const centerX = w/2, centerY = h/2, orbitRadius=240, nodeRadius=85;
+
+  // ---- nodes ----
+  const nodes = [
+    {id:'orchestration', label:'Orchestration', sub:'AI decision', angle:0, color:'#4682B4', light:'#d0e6f5'},
+    {id:'workflows', label:'Workflows', sub:'tasks', angle:Math.PI/2, color:'#3CB371', light:'#d8f0dc'},
+    {id:'selfAnnealing', label:'Self‑Annealing', sub:'error handler', angle:Math.PI, color:'#FFA07A', light:'#ffe4d6'},
+    {id:'layer1', label:'Layer 1', sub:'base / data', angle:3*Math.PI/2, color:'#9370DB', light:'#e9dcff'}
+  ];
+  nodes.forEach(n=>{n.x=centerX+orbitRadius*Math.cos(n.angle); n.y=centerY+orbitRadius*Math.sin(n.angle);});
+
+  function drawArrow(src,tgt,label,color='#3f6988'){
+    const dx=tgt.x-src.x, dy=tgt.y-src.y;
+    const angle=Math.atan2(dy,dx);
+    const srcX=src.x+nodeRadius*Math.cos(angle), srcY=src.y+nodeRadius*Math.sin(angle);
+    const tgtX=tgt.x-nodeRadius*Math.cos(angle), tgtY=tgt.y-nodeRadius*Math.sin(angle);
+
+    // line
+    ctx.beginPath(); ctx.moveTo(srcX,srcY); ctx.lineTo(tgtX,tgtY);
+    ctx.strokeStyle=color; ctx.lineWidth=3.5; ctx.stroke();
+
+    // arrowhead
+    const arrowSize=15;
+    ctx.beginPath();
+    ctx.moveTo(tgtX,tgtY);
+    ctx.lineTo(tgtX-arrowSize*0.8*Math.cos(angle-0.3), tgtY-arrowSize*0.8*Math.sin(angle-0.3));
+    ctx.lineTo(tgtX-arrowSize*0.8*Math.cos(angle+0.3), tgtY-arrowSize*0.8*Math.sin(angle+0.3));
+    ctx.closePath(); ctx.fillStyle=color; ctx.fill();
+
+    // label
+    const midX=(srcX+tgtX)/2, midY=(srcY+tgtY)/2;
+    const offset=22, perp=Math.PI/2+angle;
+    ctx.font='500 16px sans-serif';
+    ctx.fillStyle='#1e3f5a';
+    ctx.fillText(label, midX+offset*Math.cos(perp)-30, midY+offset*Math.sin(perp)-10);
+  }
+
+  // draw edges
+  drawArrow(nodes[0],nodes[1],'triggers','#4a6f8a'); // Orchestration→Workflows
+  drawArrow(nodes[1],nodes[2],'on error','#b96f50');  // Workflows→Self‑Annealing
+  drawArrow(nodes[2],nodes[3],'queries','#8a6aa8');  // Self‑Annealing→Layer1
+  drawArrow(nodes[3],nodes[0],'reads from','#3f8395'); // Layer1→Orchestration
+
+  // draw nodes
+  nodes.forEach(n=>{
+    ctx.shadowColor='rgba(30,40,60,0.35)'; ctx.shadowBlur=18; ctx.shadowOffsetX=4; ctx.shadowOffsetY=4;
+    const grd=ctx.createRadialGradient(n.x-12,n.y-12,15,n.x,n.y,nodeRadius+10);
+    grd.addColorStop(0,n.light); grd.addColorStop(1,n.color);
+    ctx.beginPath(); ctx.arc(n.x,n.y,nodeRadius,0,2*Math.PI); ctx.fillStyle=grd; ctx.fill();
+    ctx.shadowBlur=8; ctx.shadowOffsetX=2; ctx.shadowOffsetY=2; ctx.strokeStyle='#ffffffdd'; ctx.lineWidth=3; ctx.stroke();
+    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetX=0; ctx.shadowOffsetY=0;
+
+    // text
+    ctx.font='bold 20px sans-serif'; ctx.fillStyle='#0c2a3b'; ctx.textAlign='center';
+    ctx.fillText(n.label,n.x,n.y-8);
+    ctx.font='500 15px sans-serif'; ctx.fillStyle='#1f4a62';
+    ctx.fillText(n.sub,n.x,n.y+22);
+  });
+
+})();
+</script>
+</body>
+</html>
